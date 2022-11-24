@@ -41,10 +41,18 @@ h = 10000               # Altura de vuelo (m)
 #%% Variables globales
 B = (M**2-1)**0.5
 dens = 1.225*(1-22.558*10 **(-6)*h)**4.2559
-Temp = 288.15-6.5*h/1000
-Vsound = (1.4*Temp*287)**0.5
-Vinf = M*Vsound
-q = 0.5*Vinf**2*dens
+T0 = 288.15-6.5*h/1000
+Vsound = (1.4*T0*287)**0.5
+Vinf = M*Vsound                                         # Velocidad de la corriente libre
+q = 0.5*Vinf**2*dens                                    # Presión dinámica
+gamma0 = 1.4                                            # Relación de calores específicos
+theta = 5500                                            # Constante en grados Rankine
+cp0 = 1050												# Cp para gas calóricamente perfecto
+R = 1718												# Constante gases ideales en ft^2/sec^2*R
+#%% Gráfica variaciones con la temperatura
+mu_rel = lambda T: (T/T0)**(3/2)*(T0+110)/(T+110)       # Ley de sutherland
+gamma = lambda Tst: 1+(gamma0-1)/(1+(gamma0-1)*((theta/Tst)**2*np.exp(theta/Tst)/(np.exp(theta/Tst)-1)**2))
+cp = lambda Tst: cp0*(1+(gamma0-1)/gamma0*((theta/Tst)**2*np.exp(theta/Tst)/(np.exp(theta/Tst)-1)**2))/R
 
 #%% Cálculo de la resistencia
 # El drag debido al lift en un cuerpo esbelto de base cilíndrica
