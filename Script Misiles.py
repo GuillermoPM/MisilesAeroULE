@@ -4,6 +4,7 @@ Script para los cálculos del primer ejercicio entregable de la asignatura de ve
 @Autores: Guillermo Peña Martínez, Alejandro Paz Rodríguez, Raúl Ordás Collado
 @Fecha: 23/11/2022
 """
+#%% Módulos
 import numpy as np
 import matplotlib.pyplot as plt
 from sympy import symbols
@@ -39,21 +40,49 @@ AOA = AOA*np.pi/180		# Ángulo de ataque (rad).
 M = 2.3                 # Mach de vuelo
 h = 10000               # Altura de vuelo (m)
 #%% Variables globales
-B = (M**2-1)**0.5
-dens = 1.225*(1-22.558*10 **(-6)*h)**4.2559
-T0 = 288.15-6.5*h/1000
-Vsound = (1.4*T0*287)**0.5
-Vinf = M*Vsound                                         # Velocidad de la corriente libre
-q = 0.5*Vinf**2*dens                                    # Presión dinámica
-gamma0 = 1.4                                            # Relación de calores específicos
-theta = 5500                                            # Constante en grados Rankine
-cp0 = 1050												# Cp para gas calóricamente perfecto
+B = (M**2-1)**0.5										# Parámetro de corrección de compresibilidad
+dens = 1.225*(1-22.558*10 **(-6)*h)**4.2559				# Densidad a la altura de vuelo
+T = 288.15-6.5*h/1000									# Temperatura a la altura de vuelo
+Vsound = (1.4*T*287)**0.5								# Velocidad del sonido a la altura de vuelo
+Vinf = M*Vsound											# Velocidad de la corriente libre
+q = 0.5*Vinf**2*dens									# Presión dinámica
+gamma0 = 1.403											# Relación de calores específicos
+theta = 5500											# Constante en grados Rankine
 R = 1718												# Constante gases ideales en ft^2/sec^2*R
+cp0 = gamma0/(gamma0-1)*R								# Cp para gas calóricamente perfecto
+T0 = 491.7												# Temperatura de referencia para la viscosidad en grados Rankine
+mu0 = 3.58*10**(-7)										# Viscosidad a la temperatura de referencia em slug/sec*ft
 #%% Gráfica variaciones con la temperatura
-mu_rel = lambda T: (T/T0)**(3/2)*(T0+110)/(T+110)       # Ley de sutherland
+Temp = np.linspace(0,2000,100)
+Temp_gm = np.linspace(200,2000,100)
+mu_rel = lambda Tst: (Tst/T0)**(3/2)*(T0+198.72)/(Tst+198.72)       # Ley de sutherland para temperatura en grados Rankine
 gamma = lambda Tst: 1+(gamma0-1)/(1+(gamma0-1)*((theta/Tst)**2*np.exp(theta/Tst)/(np.exp(theta/Tst)-1)**2))
 cp = lambda Tst: cp0*(1+(gamma0-1)/gamma0*((theta/Tst)**2*np.exp(theta/Tst)/(np.exp(theta/Tst)-1)**2))/R
+k = lambda Tst: 5.75*10**(-5)*(1+0.00317*Tst-0.0000021*Tst**2)
+Pr = lambda Tst: cp(Tst)*mu_rel(Tst)*mu0/k(Tst) 
 
+fig, ax = plt.subplots()
+cp_pl = ax.twinx()
+muRel_pl = ax.twinx()
+Pr_pl = ax.twinx()
+cp_pl.plot(Temp,cp(Temp),'r-',label="Cp/R")
+cp_pl.set_ylim(3,4.5)
+cp_pl.set_ylabel("Cp/R")
+
+muRel_pl.plot(Temp,mu_rel(Temp),'g-',label="Sutherland")
+muRel_pl.spines.right.set_position(("axes",1.2))
+muRel_pl.set_ylim(0,3)
+muRel_pl.set_ylabel("Sutherland")
+
+Pr_pl.plot(Temp, Pr(Temp), 'b-', label="Prandtl")
+Pr_pl.set_ylim(0.65,0.8)
+Pr_pl.spines.right.set_position(("axes",1.4))
+
+ax.plot(Temp,gamma(Temp_gm),"k-",label="Gamma")
+ax.set_ylim(1.3,1.45)
+ax.grid(True)
+
+plt.show()
 #%% Cálculo de la resistencia
 # El drag debido al lift en un cuerpo esbelto de base cilíndrica
 # es la mitad del que se produce en una placa plana (Nielsen).
