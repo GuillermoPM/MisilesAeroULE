@@ -50,6 +50,7 @@ gamma0 = 1.403											# Relación de calores específicos
 theta = 5500											# Constante en grados Rankine
 R = 1718												# Constante gases ideales en ft^2/sec^2*R
 cp0 = gamma0/(gamma0-1)*R								# Cp para gas calóricamente perfecto
+cv0 = cp0/gamma0											# Cv para gas calóricamente perfecto
 T0 = 491.7												# Temperatura de referencia para la viscosidad en grados Rankine
 mu0 = 3.58*10**(-7)										# Viscosidad a la temperatura de referencia em slug/sec*ft
 #%% Gráfica variaciones con la temperatura
@@ -58,14 +59,16 @@ Temp_gm = np.linspace(200,2000,100)
 mu_rel = lambda Tst: (Tst/T0)**(3/2)*(T0+198.72)/(Tst+198.72)       # Ley de sutherland para temperatura en grados Rankine
 gamma = lambda Tst: 1+(gamma0-1)/(1+(gamma0-1)*((theta/Tst)**2*np.exp(theta/Tst)/(np.exp(theta/Tst)-1)**2))
 cp = lambda Tst: cp0*(1+(gamma0-1)/gamma0*((theta/Tst)**2*np.exp(theta/Tst)/(np.exp(theta/Tst)-1)**2))/R
-k = lambda Tst: 5.75*10**(-5)*(1+0.00317*Tst-0.0000021*Tst**2)
-Pr = lambda Tst: cp(Tst)*mu_rel(Tst)*mu0/k(Tst) 
+cv = lambda Tst: cv0*(1+(gamma0-1)*((theta/Tst)**2*np.exp(theta/Tst)/(np.exp(theta/Tst)-1)**2))/R
+k = lambda Tst: 5.75*10**(-5)*(1+0.00317*Tst-0.0000021*Tst**2)*0.5781759824/460.67
+# k = lambda Tst: 0.25*(9*gamma(Tst)-5)*mu_rel(Tst)*mu0*cv(Tst)*R
+Pr = lambda Tst: cp(Tst)*R*mu_rel(Tst)*mu0/k(Tst)
 
 fig, ax = plt.subplots()
 cp_pl = ax.twinx()
 muRel_pl = ax.twinx()
 Pr_pl = ax.twinx()
-cp_pl.plot(Temp,cp(Temp),'r-',label="Cp/R")
+cp_pl.plot(Temp,cp(Temp_gm),'r-',label="Cp/R")
 cp_pl.set_ylim(3,4.5)
 cp_pl.set_ylabel("Cp/R")
 
@@ -74,12 +77,14 @@ muRel_pl.spines.right.set_position(("axes",1.2))
 muRel_pl.set_ylim(0,3)
 muRel_pl.set_ylabel("Sutherland")
 
-Pr_pl.plot(Temp, Pr(Temp), 'b-', label="Prandtl")
+Pr_pl.plot(Temp, Pr(Temp_gm), 'b-', label="Prandtl")
 Pr_pl.set_ylim(0.65,0.8)
 Pr_pl.spines.right.set_position(("axes",1.4))
+Pr_pl.set_ylabel("Pr")
 
 ax.plot(Temp,gamma(Temp_gm),"k-",label="Gamma")
 ax.set_ylim(1.3,1.45)
+ax.set_ylabel("Gamma")
 ax.grid(True)
 
 plt.show()
