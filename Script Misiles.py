@@ -16,10 +16,10 @@ from sympy import symbols
 D = 0.177				# Diámetro del misil.
 r0 = D/2				# Radio del misil.
 l = 0.5					# Longitud de la ojiva.
-tr = 1                  # Ancho máximo de las alas.
+tr = 1					# Ancho máximo de las alas.
 cr = 1                  # Cuerda superficies de control.
 cdc = 1                 # Cf viscous crossflow.
-m = 1                   # Distancia borde de ataque a punto espesor máximo.
+m = 0.3                   # Distancia borde de ataque a punto espesor máximo.
 Bc = 0.525              # Wingspan
 deflx_w = 0.6           # Deflexión de la estela, término (1-dew/dalpha)
 Sm = 10                 # Superficie proyectada del misil
@@ -35,26 +35,26 @@ Iy = 1                  # Momento de inercia del misil respecto a un eje perpend
 
 # Características del misil
 masa = 1                # Masa del misil
-
 # Variables de vuelo
 AOA = 4 				# Ángulo de ataque (deg).
 AOA = AOA*np.pi/180		# Ángulo de ataque (rad).
-M = 2.3                 # Mach de vuelo
+M = 3                 # Mach de vuelo
 h = 10000               # Altura de vuelo (m)
 #%% Variables globales
-B = (M**2-1)**0.5										# Parámetro de corrección de compresibilidad
-dens = 1.225*(1-22.558*10 **(-6)*h)**4.2559				# Densidad a la altura de vuelo
-T = 288.15-6.5*h/1000									# Temperatura a la altura de vuelo
-Vsound = (1.4*T*287)**0.5								# Velocidad del sonido a la altura de vuelo
-Vinf = M*Vsound											# Velocidad de la corriente libre
-q = 0.5*Vinf**2*dens									# Presión dinámica
-gamma0 = 1.403											# Relación de calores específicos
-theta = 5500											# Constante en grados Rankine
-R = 1718												# Constante gases ideales en ft^2/sec^2*R
-cp0 = gamma0/(gamma0-1)*R								# Cp para gas calóricamente perfecto
+B = (M**2-1)**0.5											# Parámetro de corrección de compresibilidad
+dens = (1.225*(1-22.558*10 ** (-6)*h)**4.2559)*0.00194032	# Densidad a la altura de vuelo
+R = 1718													# Constante gases ideales en ft^2/sec^2*R
+T = 1.8*(288.15-6.5*h/1000)  								# Temperatura a la altura de vuelo en Rankine
+Patm = dens*T*R
+Vsound = (1.4*T*287)**0.5									# Velocidad del sonido a la altura de vuelo
+Vinf = M*Vsound												# Velocidad de la corriente libre
+q = 0.5*Vinf**2*dens										# Presión dinámica
+gamma0 = 1.403												# Relación de calores específicos
+theta = 5500												# Constante en grados Rankine
+cp0 = gamma0/(gamma0-1)*R									# Cp para gas calóricamente perfecto
 cv0 = cp0/gamma0											# Cv para gas calóricamente perfecto
-T0 = 491.7												# Temperatura de referencia para la viscosidad en grados Rankine
-mu0 = 3.58*10**(-7)										# Viscosidad a la temperatura de referencia em slug/sec*ft
+T0 = 491.7													# Temperatura de referencia para la viscosidad en grados Rankine
+mu0 = 3.58*10**(-7)											# Viscosidad a la temperatura de referencia em slug/sec*ft
 #%% Datos para gráfica variaciones con la temperatura. Valores extraídos del Nielsen
 Temp_Pr = [200,300,350,400,460,500,600,700,800,850,900,1000,1100,1200,1300,1400,1500,1580]
 Pr_datos = [0.768,0.75,0.74,0.73,0.72,0.714,0.7,0.69,0.684,0.682,0.68,0.679,0.68,0.682,0.685,0.689,0.692,0.695]
@@ -94,8 +94,6 @@ ax.set_ylabel("Gamma")
 ax.grid(True)
 
 plt.show()
-
-
 #%% Cálculo de la resistencia
 # El drag debido al lift en un cuerpo esbelto de base cilíndrica
 # es la mitad del que se produce en una placa plana (Nielsen).
@@ -110,9 +108,32 @@ Dc_q = cdc*AOA**3*Sc                                # Viscous crossflow drag / p
 Cd0 = 1/(4*m*(1-m))*4*(tr/cr)**2/B
 
 # Drag de fricción
+def Laminar(T,Patm):
+	Titer = 1800
+	Tref = Titer
+	while True:
+		r = Pr(Titer)**0.5
+		Ts = T*(1+(gamma(T)-1)/2*M**2)
+		Trec = T + r*(Ts-T)
+		Tref = T + 0.5*(Trec-T)+0.22*r*(Ts-T)
+		if abs(Titer-Tref) <= 0.00001:
+			break
+		Titer = Tref
+	dens_ref = Patm/(R*Tref)
+	V0 = (gamma(T)*R*T)**0.5*M
+	mu_ref = mu(Tref)*mu0
+	print(dens_ref)
+	Re_local = lambda x: V0*dens_ref/mu_ref*x
+	cf = lambda x: 0.664*Re_local(x)**(-0.5)
+	plt.plot(np.linspace(0, 10, 10), cf(np.linspace(0, 10, 10)))
+	plt.plot(np.linspace(0, 10, 10), Re_local(np.linspace(0, 10, 10)))
+	plt.show()
 
 
+	
+	return 
 
+Laminar(T,Patm)
 
 
 
@@ -139,3 +160,5 @@ Cm_delta = Cndelta_c * (Xcg-Xc)                     # Coeficiente de momentos de
 Cm_ang = -2*(Cnalpha_b*(Xcg-Xb)**2+Cnalpha_c*(Xcg-Xc)**2+Cnalpha_w*(Xcg-Xw)**2)
 # Cmf_ang = gasto_m*(Iy/masa-re**2)/(0.5/Vinf*q*S*d**2)
 Cm_variacion_AOA = -2*CNic*(Sc/Sm*r0)*(1+D/Bc)*deflx_w*(Xw-Xc)*(Xw-Xcg)             # Coeficiente de momentos debido a la variación del AOA
+
+# %%
