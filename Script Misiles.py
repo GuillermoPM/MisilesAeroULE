@@ -3,9 +3,12 @@ Script para los cálculos del primer ejercicio entregable de la asignatura de ve
 
 @Autores: Guillermo Peña Martínez, Alejandro Paz Rodríguez, Raúl Ordás Collado
 @Fecha: 23/11/2022
+@Referencias: Missile Aerodynamics (Nielsen)
 """
+#%% Módulos
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import interpolate
 from sympy import symbols
 
 #%% Variables entrada
@@ -39,12 +42,59 @@ AOA = AOA*np.pi/180		# Ángulo de ataque (rad).
 M = 2.3                 # Mach de vuelo
 h = 10000               # Altura de vuelo (m)
 #%% Variables globales
-B = (M**2-1)**0.5
-dens = 1.225*(1-22.558*10 **(-6)*h)**4.2559
-Temp = 288.15-6.5*h/1000
-Vsound = (1.4*Temp*287)**0.5
-Vinf = M*Vsound
-q = 0.5*Vinf**2*dens
+B = (M**2-1)**0.5										# Parámetro de corrección de compresibilidad
+dens = 1.225*(1-22.558*10 **(-6)*h)**4.2559				# Densidad a la altura de vuelo
+T = 288.15-6.5*h/1000									# Temperatura a la altura de vuelo
+Vsound = (1.4*T*287)**0.5								# Velocidad del sonido a la altura de vuelo
+Vinf = M*Vsound											# Velocidad de la corriente libre
+q = 0.5*Vinf**2*dens									# Presión dinámica
+gamma0 = 1.403											# Relación de calores específicos
+theta = 5500											# Constante en grados Rankine
+R = 1718												# Constante gases ideales en ft^2/sec^2*R
+cp0 = gamma0/(gamma0-1)*R								# Cp para gas calóricamente perfecto
+cv0 = cp0/gamma0											# Cv para gas calóricamente perfecto
+T0 = 491.7												# Temperatura de referencia para la viscosidad en grados Rankine
+mu0 = 3.58*10**(-7)										# Viscosidad a la temperatura de referencia em slug/sec*ft
+#%% Datos para gráfica variaciones con la temperatura. Valores extraídos del Nielsen
+Temp_Pr = [200,300,350,400,460,500,600,700,800,850,900,1000,1100,1200,1300,1400,1500,1580]
+Pr_datos = [0.768,0.75,0.74,0.73,0.72,0.714,0.7,0.69,0.684,0.682,0.68,0.679,0.68,0.682,0.685,0.689,0.692,0.695]
+Temp_gamma = [200,250,300,400,500,600,700,800,900,1000,1100,1200,1300,1350,1400,1500,1600,1700,1800,1900,2000]
+gamma_datos = [1.41,1.408,1.405,1.402,1.401,1.4,1.398,1.397,1.392,1.39,1.388,1.385,1.382,1.38,1.378,1.375,1.372,1.37,1.368,1.366,1.365]
+Temp_cp = [200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900]
+cp_datos = [3.59,3.52,3.51,3.5,3.51,3.52,3.55,3.58,3.62,3.68,3.72,3.78,3.82,3.87,3.9,3.94,3.98,4.02]
+Temp_mu = [200,300,400,500,550,600,650,700,750,800,900,1000,1050,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000]
+mu_datos = [0.2,0.63,0.82,1,1.1,1.19,1.24,1.31,1.38,1.41,1.58,1.69,1.74,1.79,1.89,2,2.1,2.18,2.24,2.34,2.4,2.51,2.58]
+Pr = interpolate.CubicSpline(Temp_Pr,Pr_datos)
+gamma = interpolate.CubicSpline(Temp_gamma,gamma_datos)
+cp = interpolate.CubicSpline(Temp_cp,cp_datos)
+mu = interpolate.CubicSpline(Temp_mu,mu_datos)
+
+fig, ax = plt.subplots()
+cp_pl = ax.twinx()
+muRel_pl = ax.twinx()
+Pr_pl = ax.twinx()
+cp_pl.plot(Temp_cp, cp(Temp_cp), 'r-', label="Cp/R")
+cp_pl.set_ylim(3, 4.5)
+cp_pl.spines.right.set_position(("axes",1.2))
+cp_pl.set_ylabel("Cp/R")
+
+muRel_pl.plot(Temp_mu, mu(Temp_mu), 'g-', label="Sutherland")
+muRel_pl.spines.right.set_position(("axes", 1.4))
+muRel_pl.set_ylim(0, 3)
+muRel_pl.set_ylabel("Sutherland")
+
+Pr_pl.plot(Temp_Pr, Pr(Temp_Pr), 'b-', label="Prandtl")
+Pr_pl.set_ylim(0.65, 0.8)
+Pr_pl.spines.right.set_position(("axes", 1.6))
+Pr_pl.set_ylabel("Pr")
+
+ax.plot(Temp_gamma, gamma(Temp_gamma), "k-", label="Gamma")
+ax.set_ylim(1.3, 1.45)
+ax.set_ylabel("Gamma")
+ax.grid(True)
+
+plt.show()
+
 
 #%% Cálculo de la resistencia
 # El drag debido al lift en un cuerpo esbelto de base cilíndrica
