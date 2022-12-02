@@ -3,10 +3,12 @@ Script para los cálculos del primer ejercicio entregable de la asignatura de ve
 
 @Autores: Guillermo Peña Martínez, Alejandro Paz Rodríguez, Raúl Ordás Collado
 @Fecha: 23/11/2022
+@Referencias: Missile Aerodynamics (Nielsen)
 """
 #%% Módulos
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import interpolate
 from sympy import symbols
 
 #%% Variables entrada
@@ -53,6 +55,17 @@ cp0 = gamma0/(gamma0-1)*R								# Cp para gas calóricamente perfecto
 cv0 = cp0/gamma0											# Cv para gas calóricamente perfecto
 T0 = 491.7												# Temperatura de referencia para la viscosidad en grados Rankine
 mu0 = 3.58*10**(-7)										# Viscosidad a la temperatura de referencia em slug/sec*ft
+#%% Datos para gráfica variaciones con la temperatura. Valores extraídos del Nielsen
+Temp_Pr = [200,300,350,400,460,500,600,700,800,850,900,1000,1100,1200,1300,1400,1500,1580]
+Pr_datos = [0.768,0.75,0.74,0.73,0.72,0.714,0.7,0.69,0.684,0.682,0.68,0.679,0.68,0.682,0.685,0.689,0.692,0.695]
+Temp_gamma = [200,250,300,400,500,600,700,800,900,1000,1100,1200,1300,1350,1400,1500]
+gamma_datos = [0.76,0.758,0.755,0.752,0.751,0.75,0.749,0.747,0.744,0.74,0.738,0.734,0.732,0.72,0.728,0.725]
+Pr = interpolate.CubicSpline(Temp_Pr,Pr_datos)
+plt.plot(Temp_Pr,Pr(Temp_Pr))
+plt.plot(Temp_Pr,Pr_datos)
+plt.show()
+
+
 #%% Gráfica variaciones con la temperatura
 Temp = np.linspace(0,2000,100)
 Temp_gm = np.linspace(200,2000,100)
@@ -63,6 +76,7 @@ cv = lambda Tst: cv0*(1+(gamma0-1)*((theta/Tst)**2*np.exp(theta/Tst)/(np.exp(the
 k = lambda Tst: 5.75*10**(-5)*(1+0.00317*Tst-0.0000021*Tst**2)*0.5781759824/460.67
 # k = lambda Tst: 0.25*(9*gamma(Tst)-5)*mu_rel(Tst)*mu0*cv(Tst)*R
 Pr = lambda Tst: cp(Tst)*R*mu_rel(Tst)*mu0/k(Tst)
+
 
 fig, ax = plt.subplots()
 cp_pl = ax.twinx()
