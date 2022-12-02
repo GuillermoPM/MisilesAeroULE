@@ -62,8 +62,8 @@ Temp_gamma = [200,250,300,400,500,600,700,800,900,1000,1100,1200,1300,1350,1400,
 gamma_datos = [1.41,1.408,1.405,1.402,1.401,1.4,1.398,1.397,1.392,1.39,1.388,1.385,1.382,1.38,1.378,1.375,1.372,1.37,1.368,1.366,1.365]
 Temp_cp = [200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900]
 cp_datos = [3.59,3.52,3.51,3.5,3.51,3.52,3.55,3.58,3.62,3.68,3.72,3.78,3.82,3.87,3.9,3.94,3.98,4.02]
-Temp_mu = [200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000]
-mu_datos = [0.2,0.63,0.82,1,1.19,1.27,1.41,1.48,1.64,1.69,1.84,2,2.1,2.18,2.24,2.34,2.4,2.51,2.58]
+Temp_mu = [200,300,400,500,550,600,650,700,750,800,900,1000,1050,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000]
+mu_datos = [0.2,0.63,0.82,1,1.1,1.19,1.24,1.31,1.38,1.41,1.58,1.69,1.74,1.79,1.89,2,2.1,2.18,2.24,2.34,2.4,2.51,2.58]
 Pr = interpolate.CubicSpline(Temp_Pr,Pr_datos)
 gamma = interpolate.CubicSpline(Temp_gamma,gamma_datos)
 cp = interpolate.CubicSpline(Temp_cp,cp_datos)
@@ -96,42 +96,6 @@ ax.grid(True)
 plt.show()
 
 
-#%% Gráfica variaciones con la temperatura
-Temp = np.linspace(0,2000,100)
-Temp_gm = np.linspace(200,2000,100)
-mu_rel = lambda Tst: (Tst/T0)**(3/2)*(T0+198.72)/(Tst+198.72)       # Ley de sutherland para temperatura en grados Rankine
-gamma = lambda Tst: 1+(gamma0-1)/(1+(gamma0-1)*((theta/Tst)**2*np.exp(theta/Tst)/(np.exp(theta/Tst)-1)**2))
-cp = lambda Tst: cp0*(1+(gamma0-1)/gamma0*((theta/Tst)**2*np.exp(theta/Tst)/(np.exp(theta/Tst)-1)**2))/R
-cv = lambda Tst: cv0*(1+(gamma0-1)*((theta/Tst)**2*np.exp(theta/Tst)/(np.exp(theta/Tst)-1)**2))/R
-k = lambda Tst: 5.75*10**(-5)*(1+0.00317*Tst-0.0000021*Tst**2)*0.5781759824/460.67
-# k = lambda Tst: 0.25*(9*gamma(Tst)-5)*mu_rel(Tst)*mu0*cv(Tst)*R
-Pr = lambda Tst: cp(Tst)*R*mu_rel(Tst)*mu0/k(Tst)
-
-
-fig, ax = plt.subplots()
-cp_pl = ax.twinx()
-muRel_pl = ax.twinx()
-Pr_pl = ax.twinx()
-cp_pl.plot(Temp,cp(Temp_gm),'r-',label="Cp/R")
-cp_pl.set_ylim(3,4.5)
-cp_pl.set_ylabel("Cp/R")
-
-muRel_pl.plot(Temp,mu_rel(Temp),'g-',label="Sutherland")
-muRel_pl.spines.right.set_position(("axes",1.2))
-muRel_pl.set_ylim(0,3)
-muRel_pl.set_ylabel("Sutherland")
-
-Pr_pl.plot(Temp, Pr(Temp_gm), 'b-', label="Prandtl")
-Pr_pl.set_ylim(0.65,0.8)
-Pr_pl.spines.right.set_position(("axes",1.4))
-Pr_pl.set_ylabel("Pr")
-
-ax.plot(Temp,gamma(Temp_gm),"k-",label="Gamma")
-ax.set_ylim(1.3,1.45)
-ax.set_ylabel("Gamma")
-ax.grid(True)
-
-plt.show()
 #%% Cálculo de la resistencia
 # El drag debido al lift en un cuerpo esbelto de base cilíndrica
 # es la mitad del que se produce en una placa plana (Nielsen).
