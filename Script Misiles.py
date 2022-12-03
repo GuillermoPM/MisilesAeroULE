@@ -13,9 +13,10 @@ from sympy import symbols
 
 #%% Variables entrada
 # Variables geométricas
-D = 0.177				# Diámetro del misil.
-r0 = D/2				# Radio del misil.
-l = 0.5					# Longitud de la ojiva.
+D = 0.177				# Diámetro del misil. (m)
+r0 = D/2				# Radio del misil. (m)
+l = 0.5					# Longitud de la ojiva. (m)
+l_misil = 10			# Longitud del misil ft
 tr = 1					# Ancho máximo de las alas.
 cr = 1                  # Cuerda superficies de control.
 cdc = 1                 # Cf viscous crossflow.
@@ -31,7 +32,6 @@ Xcp = 0.1               # Distancia al centro de presiones
 Xw = 0.3                # Distancia adimensional al centro de presiones del ala
 Xb = 0.4                # Distancia adimensional al centro de presiones del fuselaje
 Xc = 0.5                # Distancia adimensional al centro de presiones del control
-Iy = 1                  # Momento de inercia del misil respecto a un eje perpendicular al plano del movimiento
 
 # Características del misil
 masa = 1                # Masa del misil
@@ -109,8 +109,8 @@ Cd0 = 1/(4*m*(1-m))*4*(tr/cr)**2/B
 
 # Drag de fricción
 def Laminar(T,Patm):
-	Titer = 1800
-	Tref = Titer
+	Titer = 1800 # Temperatura de inicio de la iteración
+	Tref = Titer 
 	while True:
 		r = Pr(Titer)**0.5
 		Ts = T*(1+(gamma(T)-1)/2*M**2)
@@ -122,19 +122,41 @@ def Laminar(T,Patm):
 	dens_ref = Patm/(R*Tref)
 	V0 = (gamma(T)*R*T)**0.5*M
 	mu_ref = mu(Tref)*mu0
-	print(dens_ref)
 	Re_local = lambda x: V0*dens_ref/mu_ref*x
 	cf = lambda x: 0.664*Re_local(x)**(-0.5)
-	plt.plot(np.linspace(0, 10, 10), cf(np.linspace(0, 10, 10)))
-	plt.plot(np.linspace(0, 10, 10), Re_local(np.linspace(0, 10, 10)))
-	plt.show()
+	x_misil = np.linspace(0.001,l_misil,10)
+	cf_local = []
+	i = 0
+	while Re_local(x_misil[i]) < 10**7:
+		cf_local.append(cf(x_misil[i])) 
+		i += 1
+	return cf_local,x_misil[i]
+
+def Turbulenta(T,Patm,x):
+	Titer = 1800
+	Tref = Titer
+	while True:
+		r = Pr(Titer)**(3/2)
+		Ts = T*(1+(gamma(T)-1)/2*M**2)
+		Trec = T + r*(Ts-T)
+		Tref = T + 0.5*(Trec-T)+0.22*r*(Ts-T)
+		if abs(Titer-Tref) <= 0.00001:
+			break
+		Titer = Tref
+	dens_ref = Patm/(R*Tref)
+	V0 = (gamma(T)*R*T)**0.5*M
+	mu_ref = mu(Tref)*mu0
+	def Re_local(x): return V0*dens_ref/mu_ref*x
+	def cf(x): return 0.370*np.log(Re_local(x))**(-2.584)
+	cf_local = cf(np.linspace(x,l_misil,10))
+	return cf_local
 
 
-	
-	return 
-
-Laminar(T,Patm)
-
+xT = Laminar(T, Patm)[1]
+BL_laminar = np.array(Laminar(T, Patm)[0])
+cf_local = np.append(BL_laminar,Turbulenta(T,Patm,xT))
+plt.plot(np.linspace(0,l_misil,len(cf_local)),cf_local)
+plt.show()
 
 
 #%% Fuerzas en el giro configuración "clásica"
