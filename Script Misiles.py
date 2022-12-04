@@ -42,11 +42,10 @@ h = 10000               # Altura de vuelo (m)
 B = (M**2-1)**0.5											# Parámetro de corrección de compresibilidad
 dens = (1.225*(1-22.558*10 ** (-6)*h)**4.2559)*0.00194032	# Densidad a la altura de vuelo
 R = 1718													# Constante gases ideales en ft^2/sec^2*R
-T = 1.8*(288.15-6.5*h/1000)  								# Temperatura a la altura de vuelo en Rankine
-Patm = dens*T*R
-Vsound = (1.4*T*287)**0.5									# Velocidad del sonido a la altura de vuelo
+Tinf = 1.8*(288.15-6.5*h/1000)  								# Temperatura a la altura de vuelo en Rankine
+Patm = dens*Tinf*R
+Vsound = (1.4*Tinf*287)**0.5									# Velocidad del sonido a la altura de vuelo
 Vinf = M*Vsound												# Velocidad de la corriente libre
-T0 = 491.7													# Temperatura de referencia para la viscosidad en grados Rankine
 mu0 = 3.58*10**(-7)											# Viscosidad a la temperatura de referencia em slug/sec*ft
 dl = 50														# Divisiones del misil para las funciones de la capa límite.
 #%% Datos para gráfica variaciones con la temperatura. Valores extraídos del Nielsen
@@ -102,8 +101,15 @@ Dc_q = cdc*AOA**3*Sc                                # Viscous crossflow drag / p
 Cd0 = 1/(4*m*(1-m))*4*(tr/cr)**2/B
 
 # Drag de fricción
-def Laminar(T,Patm):
-	Titer = 1800 # Temperatura de inicio de la iteración
+Vinf = (gamma(Tinf)*R*Tinf)**0.5*M # Velocidad de la corriente libre
+dens_ref = lambda T: Patm/(R*T) # Función de cálculo de la densidad de referencia en la capa límite.
+Re = lambda x,ρ,μ: Vinf*ρ*x/μ # Reynolds
+cf_laminar = lambda x,ρ,μ: 0.664*Re(x,ρ,μ)**(-0.5) # Coeficiente de fricción para caso laminar.
+cf_turbulento = lambda x,ρ,μ: 0.370/(np.log10(Re(x,ρ,μ))**2.584)
+
+def Laminar(T):
+	"Función que calcula la capa límite laminar en función de la temperatura exterior"
+	Titer = 1800						# Temperatura de inicio de la iteración
 	Tref = Titer 
 	while True:
 		r = Pr(Titer)**0.5
@@ -113,60 +119,64 @@ def Laminar(T,Patm):
 		if abs(Titer-Tref) <= 0.00001:
 			break
 		Titer = Tref
-	dens_ref = Patm/(R*Tref)
-	V0 = (gamma(T)*R*T)**0.5*M
 	mu_ref = mu(Tref)*mu0
-	Re_local = lambda x: V0*dens_ref/mu_ref*x
-	Re_medio = V0*dens_ref/mu_ref*l_misil
+	# Promedio
+	Re_medio = Re(x=l_misil,ρ = dens_ref(Tref),μ = mu_ref)
 	cf_medio = 0.664*2/(Re_medio**0.5)
-	cf = lambda x: 0.664*Re_local(x)**(-0.5)
-	x_misil = np.linspace(0.6,l_misil,dl)
+	# Local
+	x_misil = np.linspace(0.5,l_misil,dl)
 	cf_local = []
 	i = 0
-	while Re_local(x_misil[i]) < 10**7:
-		cf_local.append(cf(x_misil[i])) 
+	while Re(x=x_misil[i], ρ=dens_ref(Tref), μ=mu_ref) < 10**7:
+		cf_local.append(cf_laminar(x = x_misil[i], ρ = dens_ref(Tref),μ = mu_ref))  # La capa límite laminar está presente hasta el punto de transición.
 		i += 1
-	delta_Blayer = 5*x_misil/Re_local(x_misil)**0.5
-	displ_thickness = 1.72*x_misil/(Re_local(x_misil)**0.5)
-	return cf_local,x_misil[i],delta_Blayer,dens_ref,cf_medio,displ_thickness
+	xT = x_misil[i-1]
+	θ = xT*cf_local[i-1]		# Momentum thickness
+	δ = 5*x_misil/(Re(x=x_misil, ρ=dens_ref(Tref),μ=mu_ref)**0.5)  # Espesor capa límite
+	displ_thickness = 1.72*x_misil/(Re(x=x_misil, ρ=dens_ref(Tref), μ=mu_ref)**0.5)  # Displacement thickness
+	return cf_local,xT,θ,δ,dens_ref(Tref),cf_medio,displ_thickness
 
 
-xT = Laminar(T, Patm)[1]				# Punto de transición
+θ = Laminar(Tinf)[2]			# Punto de transición
+xT = Laminar(Tinf)[1]			# Punto de transición
 
-def Turbulenta(T,Patm,x):
+def Turbulenta(T,θ,xT):
+	"Función que calcula la capa límite turbulenta en función de la temperatura exterior"
 	Titer = 1800
 	Tref = Titer
 	while True:
-		r = Pr(Titer)**(3/2)
+		r = Pr(Titer)**(1/3)
 		Ts = T*(1+(gamma(T)-1)/2*M**2)
 		Trec = T + r*(Ts-T)
 		Tref = T + 0.5*(Trec-T)+0.22*r*(Ts-T)
 		if abs(Titer-Tref) <= 0.00001:
 			break
 		Titer = Tref
-	dens_ref = Patm/(R*Tref)
-	V0 = (gamma(T)*R*T)**0.5*M
 	mu_ref = mu(Tref)*mu0
-	Re_medio = V0*dens_ref/mu_ref*l_misil
+	# Promedio
+	Re_medio = Re(x=l_misil, ρ=dens_ref(Tref), μ=mu_ref)
 	cf_medio = 0.455/(np.log10(Re_medio)**2.58)
-	x_misil = np.linspace(x,l_misil,dl)
-	
-	Re_local = lambda x: V0*dens_ref/mu_ref*x
-	cf = lambda x: 0.370*np.log10(Re_local(x))**(-2.584)
-	delta_BLayer = 0.37*x_misil*Re_local(x_misil)**(-1/5)
-	cf_local = cf(x_misil)
-	return cf_local,delta_BLayer,V0,dens_ref
 
+	Δx = 2*θ/cf_medio # Referencia Missile Aerodynamics.
+	x_compensado = xT - Δx
+	x_misil = np.linspace(0,l_misil,dl)
+	x_misil_compensado = [(coord - x_compensado) for coord in x_misil]
+	delta_BLayer = lambda x,ρ,μ: 0.37*x*Re(x,ρ,μ)**(-1/5)
 
-dens_lam, dens_turb, displ_thickness = Laminar(T, Patm)[3], Turbulenta(T, Patm, xT)[3], Laminar(T, Patm)[5]/(D*3.281)
-V0 = Turbulenta(T, Patm, xT)[2]
-BL_laminar = np.array(Laminar(T, Patm)[0])
-cf_local = np.append(BL_laminar,Turbulenta(T,Patm,xT)[0])
+	δ = [delta_BLayer(x=coord, ρ=dens_ref(Tref), μ=mu_ref)/(D*3.281)
+            for coord in x_misil_compensado if coord > 0]
+	cf_local = [cf_turbulento(x=coord, ρ=dens_ref(Tref), μ=mu_ref)
+             for coord in x_misil_compensado if coord > 0]
+	return cf_local,δ,dens_ref(Tref)
+
+dens_lam, dens_turb, displ_thickness = Laminar(Tinf)[4], Turbulenta(Tinf,θ, xT)[2], Laminar(Tinf)[6]/(D*3.281)
+BL_laminar = np.array(Laminar(Tinf)[0])
+cf_local = np.append(BL_laminar,Turbulenta(Tinf,θ,xT)[0])
 cf_local_func = interpolate.CubicSpline(np.linspace(0,l_misil,len(cf_local)),cf_local)
 # Relación entre el espesor de la capa límite laminar y el diámetro del misil
-delta_rel = Laminar(T, Patm)[2]/(D*3.281)
+delta_rel = Laminar(Tinf)[3]/(D*3.281)
 # Relación entre el espesor de la capa límite turbulenta y el diámetro del misil
-delta_rel_turb = Turbulenta(T, Patm,xT)[1]/(D*3.281)
+delta_rel_turb = Turbulenta(Tinf,θ,xT)[1]
 def Plots():
 	plt.figure(1)
 	plt.plot(np.linspace(0,xT,len(delta_rel)),delta_rel,label = 'Laminar')
@@ -194,8 +204,8 @@ Plots()
 cf_medio_lam = integrate.quad(cf_local_func,0,l)[0]*3**0.5 + integrate.quad(cf_local_func,l,xT)[0]
 cf_medio_turb = integrate.quad(cf_local_func, xT, l_misil)[0]
 
-Dfricc_lam, Dfricc_turb = cf_medio_lam * V0**2 / \
-	2*dens_lam, cf_medio_turb * V0**2/2*dens_turb
+Dfricc_lam, Dfricc_turb = cf_medio_lam * Vinf**2 / \
+	2*dens_lam, cf_medio_turb * Vinf**2/2*dens_turb
 
 Dfricc = Dfricc_lam + Dfricc_turb				# En unidades del sistema imperial
 r_ojiva = lambda x: r0/l*x
@@ -223,6 +233,5 @@ Cm_delta = Cndelta_c * (Xcg-Xc)                     # Coeficiente de momentos de
 
 # Momentos debidos a la velocidad angular y la variación del AOA
 Cm_ang = -2*(Cnalpha_b*(Xcg-Xb)**2+Cnalpha_c*(Xcg-Xc)**2+Cnalpha_w*(Xcg-Xw)**2)
-# Cmf_ang = gasto_m*(Iy/masa-re**2)/(0.5/Vinf*q*S*d**2)
 Cm_variacion_AOA = -2*CNic*(Sc/Sm*r0)*(1+D/Bc)*deflx_w*(Xw-Xc)*(Xw-Xcg)             # Coeficiente de momentos debido a la variación del AOA
 
