@@ -9,9 +9,9 @@ Script para los cálculos del primer ejercicio entregable de la asignatura de ve
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate, integrate
-from sympy import symbols
 
 #%% Variables entrada
+
 # Variables geométricas
 D = 0.177				# Diámetro del misil. (m)
 r0 = D/2				# Radio del misil. (m)
@@ -33,12 +33,10 @@ Xw = 0.3                # Distancia adimensional al centro de presiones del ala
 Xb = 0.4                # Distancia adimensional al centro de presiones del fuselaje
 Xc = 0.5                # Distancia adimensional al centro de presiones del control
 
-# Características del misil
-masa = 1                # Masa del misil
 # Variables de vuelo
 AOA = 4 				# Ángulo de ataque (deg).
 AOA = AOA*np.pi/180		# Ángulo de ataque (rad).
-M = 3                 # Mach de vuelo
+M = 3                 	# Mach de vuelo
 h = 10000               # Altura de vuelo (m)
 #%% Variables globales
 B = (M**2-1)**0.5											# Parámetro de corrección de compresibilidad
@@ -48,11 +46,6 @@ T = 1.8*(288.15-6.5*h/1000)  								# Temperatura a la altura de vuelo en Ranki
 Patm = dens*T*R
 Vsound = (1.4*T*287)**0.5									# Velocidad del sonido a la altura de vuelo
 Vinf = M*Vsound												# Velocidad de la corriente libre
-q = 0.5*Vinf**2*dens										# Presión dinámica
-gamma0 = 1.403												# Relación de calores específicos
-theta = 5500												# Constante en grados Rankine
-cp0 = gamma0/(gamma0-1)*R									# Cp para gas calóricamente perfecto
-cv0 = cp0/gamma0											# Cv para gas calóricamente perfecto
 T0 = 491.7													# Temperatura de referencia para la viscosidad en grados Rankine
 mu0 = 3.58*10**(-7)											# Viscosidad a la temperatura de referencia em slug/sec*ft
 dl = 50														# Divisiones del misil para las funciones de la capa límite.
@@ -109,7 +102,6 @@ Dc_q = cdc*AOA**3*Sc                                # Viscous crossflow drag / p
 Cd0 = 1/(4*m*(1-m))*4*(tr/cr)**2/B
 
 # Drag de fricción
-
 def Laminar(T,Patm):
 	Titer = 1800 # Temperatura de inicio de la iteración
 	Tref = Titer 
@@ -159,15 +151,14 @@ def Turbulenta(T,Patm,x):
 	cf_medio = 0.455/(np.log10(Re_medio)**2.58)
 	x_misil = np.linspace(x,l_misil,dl)
 	
-	def Re_local(x): return V0*dens_ref/mu_ref*x
-	def cf(x): return 0.370*np.log10(Re_local(x))**(-2.584)
+	Re_local = lambda x: V0*dens_ref/mu_ref*x
+	cf = lambda x: 0.370*np.log10(Re_local(x))**(-2.584)
 	delta_BLayer = 0.37*x_misil*Re_local(x_misil)**(-1/5)
 	cf_local = cf(x_misil)
 	return cf_local,delta_BLayer,V0,dens_ref
 
 
-dens_lam, dens_turb, displ_thickness = Laminar(
-	T, Patm)[3], Turbulenta(T, Patm, xT)[3], Laminar(T, Patm)[5]/(D*3.281)
+dens_lam, dens_turb, displ_thickness = Laminar(T, Patm)[3], Turbulenta(T, Patm, xT)[3], Laminar(T, Patm)[5]/(D*3.281)
 V0 = Turbulenta(T, Patm, xT)[2]
 BL_laminar = np.array(Laminar(T, Patm)[0])
 cf_local = np.append(BL_laminar,Turbulenta(T,Patm,xT)[0])
@@ -176,24 +167,26 @@ cf_local_func = interpolate.CubicSpline(np.linspace(0,l_misil,len(cf_local)),cf_
 delta_rel = Laminar(T, Patm)[2]/(D*3.281)
 # Relación entre el espesor de la capa límite turbulenta y el diámetro del misil
 delta_rel_turb = Turbulenta(T, Patm,xT)[1]/(D*3.281)
-plt.figure(1)
-plt.plot(np.linspace(0,xT,len(delta_rel)),delta_rel,label = 'Laminar')
-plt.plot(np.linspace(xT, l_misil, len(delta_rel)), delta_rel_turb,label = 'Turbulenta')
-plt.plot([xT,xT],[delta_rel[-1],delta_rel_turb[0]],':')
-plt.legend()
-plt.ylabel("δ/D")
-plt.xlabel("Distancia desde el extremo de la ojiva (ft)")
+def Plots():
+	plt.figure(1)
+	plt.plot(np.linspace(0,xT,len(delta_rel)),delta_rel,label = 'Laminar')
+	plt.plot(np.linspace(xT, l_misil, len(delta_rel_turb)), delta_rel_turb,label = 'Turbulenta')
+	plt.plot([xT,xT],[delta_rel[-1],delta_rel_turb[0]],':')
+	plt.legend()
+	plt.ylabel("δ/D")
+	plt.xlabel("Distancia desde el extremo de la ojiva (ft)")
 
-plt.figure(2)
-plt.plot(np.linspace(0,xT,len(displ_thickness)),displ_thickness)
-plt.ylabel("δ*/D")
-plt.xlabel("Distancia desde el extremo de la ojiva (ft)")
+	plt.figure(2)
+	plt.plot(np.linspace(0,xT,len(displ_thickness)),displ_thickness)
+	plt.ylabel("δ*/D")
+	plt.xlabel("Distancia desde el extremo de la ojiva (ft)")
 
-plt.figure(3)
-plt.plot(np.linspace(0,l_misil,len(cf_local)),cf_local)
-plt.ylabel("Coeficiente de fricción local")
-plt.xlabel("Distancia desde el extremo de la ojiva (ft)")
-plt.show()
+	plt.figure(3)
+	plt.plot(np.linspace(0,l_misil,len(cf_local)),cf_local)
+	plt.ylabel("Coeficiente de fricción local")
+	plt.xlabel("Distancia desde el extremo de la ojiva (ft)")
+	plt.show()
+Plots()
 
 # Coeficiente de fricción medio. Se integra la función generada como suma de los coeficientes de fricción locales de la
 # parte laminar y de la parte turbulenta
@@ -205,9 +198,9 @@ Dfricc_lam, Dfricc_turb = cf_medio_lam * V0**2 / \
 	2*dens_lam, cf_medio_turb * V0**2/2*dens_turb
 
 Dfricc = Dfricc_lam + Dfricc_turb				# En unidades del sistema imperial
-r_ojiva = lambda x: D/2/l*x
+r_ojiva = lambda x: r0/l*x
 # Integral de revolución para obtener el drag total
-Dfricc_ojiva, Dfricc_fus = Dfricc_lam*2*np.pi*integrate.quad(r_ojiva, 0, l)[0], (xT- l)*Dfricc_lam*2*np.pi*D/2*3.281 + 2*np.pi*D/2*3.281*(l_misil-xT)*Dfricc_turb
+Dfricc_ojiva, Dfricc_fus = Dfricc_lam*2*np.pi*integrate.quad(r_ojiva, 0, l)[0], (xT- l)*Dfricc_lam*2*np.pi*r0*3.281 + 2*np.pi*r0*3.281*(l_misil-xT)*Dfricc_turb
 Dfricc_misil = Dfricc_ojiva + Dfricc_fus
 #%% Fuerzas en el giro configuración "clásica"
 # Fuerzas debidas a alpha
@@ -233,4 +226,3 @@ Cm_ang = -2*(Cnalpha_b*(Xcg-Xb)**2+Cnalpha_c*(Xcg-Xc)**2+Cnalpha_w*(Xcg-Xw)**2)
 # Cmf_ang = gasto_m*(Iy/masa-re**2)/(0.5/Vinf*q*S*d**2)
 Cm_variacion_AOA = -2*CNic*(Sc/Sm*r0)*(1+D/Bc)*deflx_w*(Xw-Xc)*(Xw-Xcg)             # Coeficiente de momentos debido a la variación del AOA
 
-# %%
