@@ -16,7 +16,8 @@ from scipy import interpolate, integrate
 D = 0.177				# Diámetro del misil. (m)
 r0 = D/2				# Radio del misil. (m)
 l = 0.5					# Longitud de la ojiva. (m)
-l_misil = 3.65*3.281	# Longitud del misil ft
+ang_ojiva = 2*np.arctan(D/(2*l))		# Ángulo de la ojiva
+l_misil = 3.65							# Longitud del misil (m)
 tr = 1					# Ancho máximo de las alas.
 cr = 1                  # Cuerda superficies de control.
 cdc = 1                 # Cf viscous crossflow.
@@ -26,6 +27,8 @@ deflx_w = 0.6           # Deflexión de la estela, término (1-dew/dalpha)
 Sm = 10                 # Superficie proyectada del misil
 Scontrol = 10           # Superficie alar de los controles (m^2)
 Sw = 10                 # Superficie alar (m^2)
+S = 100					# Superficie del misil (m^2)
+Sb = 10					# Superficie del tronco de cono de la base (m^2)
 Bw = 0.56               # Wingspan ala (m)
 Xcg = 0.2               # Distancia al centro de gravedad
 Xcp = 0.1               # Distancia al centro de presiones
@@ -55,8 +58,8 @@ Temp_gamma = [200,250,300,400,500,600,700,800,900,1000,1100,1200,1300,1350,1400,
 gamma_datos = [1.41,1.408,1.405,1.402,1.401,1.4,1.398,1.397,1.392,1.39,1.388,1.385,1.382,1.38,1.378,1.375,1.372,1.37,1.368,1.366,1.365]
 Temp_cp = [200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900]
 cp_datos = [3.59,3.52,3.51,3.5,3.51,3.52,3.55,3.58,3.62,3.68,3.72,3.78,3.82,3.87,3.9,3.94,3.98,4.02]
-Temp_mu = [200,300,400,500,550,600,650,700,750,800,900,1000,1050,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000]
-mu_datos = [0.2,0.63,0.82,1,1.1,1.19,1.24,1.31,1.38,1.41,1.58,1.69,1.74,1.79,1.89,2,2.1,2.18,2.24,2.34,2.4,2.51,2.58]
+Temp_mu = [200,300,400,500,550,600,650,700,750,760,800,900,1000,1050,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000]
+mu_datos = [0.2,0.63,0.82,1,1.1,1.19,1.24,1.31,1.38,1.4,1.41,1.58,1.69,1.74,1.79,1.89,2,2.1,2.18,2.24,2.34,2.4,2.51,2.58]
 Pr = interpolate.CubicSpline(Temp_Pr,Pr_datos)
 gamma = interpolate.CubicSpline(Temp_gamma,gamma_datos)
 cp = interpolate.CubicSpline(Temp_cp,cp_datos)
@@ -97,10 +100,17 @@ D_q = 0.5*L_q*AOA                                   # Resitencia debida a la sus
 Sc = np.pi*r0**2                                    # Superficie transversal
 Dc_q = cdc*AOA**3*Sc                                # Viscous crossflow drag / presión dinámica
 
+## RESISTENCIA FRONTAL
 # Drag frontal en las alas para AOA = 0
 Cd0 = 1/(4*m*(1-m))*4*(tr/cr)**2/B
+# Drag frontal ojiva
+Cdw = (0.083+0.096/M**2)*(ang_ojiva/10)**1.69*(1-(392*(l/D)**2-32)/(28*(M+18)*(l/D)**2))
 
-# Drag de fricción
+## RESISTENCIA DE BASE
+Cdb_s = 1
+Cdb = Cdb_s *Sb/S
+
+## RESISTENCIA DE FRICCIÓN
 Vinf = (gamma(Tinf)*R*Tinf)**0.5*M # Velocidad de la corriente libre
 dens_ref = lambda T: Patm/(R*T) # Función de cálculo de la densidad de referencia en la capa límite.
 Re = lambda x,ρ,μ: Vinf*ρ*x/μ # Reynolds
@@ -121,10 +131,10 @@ def Laminar(T):
 		Titer = Tref
 	mu_ref = mu(Tref)*mu0
 	# Promedio
-	Re_medio = Re(x=l_misil,ρ = dens_ref(Tref),μ = mu_ref)
+	Re_medio = Re(x=l_misil*3.281, ρ=dens_ref(Tref), μ=mu_ref)
 	cf_medio = 0.664*2/(Re_medio**0.5)
 	# Local
-	x_misil = np.linspace(0.5,l_misil,dl)
+	x_misil = np.linspace(0.5, l_misil*3.281, dl)
 	cf_local = []
 	i = 0
 	while Re(x=x_misil[i], ρ=dens_ref(Tref), μ=mu_ref) < 10**7:
@@ -152,16 +162,25 @@ def Turbulenta(T,θ,xT):
 		if abs(Titer-Tref) <= 0.00001:
 			break
 		Titer = Tref
+	print(Tref)
 	mu_ref = mu(Tref)*mu0
 	# Promedio
-	Re_medio = Re(x=l_misil, ρ=dens_ref(Tref), μ=mu_ref)
+	Re_medio = Re(x=l_misil*3.281, ρ=dens_ref(Tref), μ=mu_ref)
 	cf_medio = 0.455/(np.log10(Re_medio)**2.58)
 
-	Δx = 2*θ/cf_medio # Referencia Missile Aerodynamics.
+	x_misil = np.linspace(0, l_misil*3.281, dl)
+	cf_local = [cf_turbulento(x=coord, ρ=dens_ref(Tref), μ=mu_ref)
+            for coord in x_misil if coord > 0]
+	Δx = 0
+	for i in range(0,len(x_misil)-1):
+		θturb = x_misil[i]*cf_local[i]/2
+		if abs(θturb - θ) < 0.000001:
+			Δx = 2*θ/cf_local[i]  # Referencia Missile Aerodynamics
+			break 
 	x_compensado = xT - Δx
-	x_misil = np.linspace(0,l_misil,dl)
+	
 	x_misil_compensado = [(coord - x_compensado) for coord in x_misil]
-	delta_BLayer = lambda x,ρ,μ: 0.37*x*Re(x,ρ,μ)**(-1/5)
+	delta_BLayer = lambda x,ρ,μ: 0.37*x/(Re(x,ρ,μ)**(1/5))
 
 	δ = [delta_BLayer(x=coord, ρ=dens_ref(Tref), μ=mu_ref)/(D*3.281)
             for coord in x_misil_compensado if coord > 0]
@@ -204,8 +223,7 @@ Plots()
 cf_medio_lam = integrate.quad(cf_local_func,0,l)[0]*3**0.5 + integrate.quad(cf_local_func,l,xT)[0]
 cf_medio_turb = integrate.quad(cf_local_func, xT, l_misil)[0]
 
-Dfricc_lam, Dfricc_turb = cf_medio_lam * Vinf**2 / \
-	2*dens_lam, cf_medio_turb * Vinf**2/2*dens_turb
+Dfricc_lam, Dfricc_turb = cf_medio_lam * Vinf**2/2 *dens_lam, cf_medio_turb * Vinf**2/2*dens_turb
 
 Dfricc = Dfricc_lam + Dfricc_turb				# En unidades del sistema imperial
 r_ojiva = lambda x: r0/l*x
