@@ -1,0 +1,14 @@
+[0] Config.pm:306> INFO - This is Biber 2.18
+[0] Config.pm:309> INFO - Logfile is 'main.blg'
+[699] biber-MSWIN64:340> INFO - === 
+[745] Biber.pm:418> INFO - Reading 'main.bcf'
+[876] Biber.pm:978> INFO - Found 1 citekeys in bib section 0
+[900] Biber.pm:4401> INFO - Processing section 0
+[915] Biber.pm:4592> INFO - Looking for bibtex file 'dimensionado.bib' for section 0
+[975] bibtex.pm:1713> INFO - LaTeX decoding ...
+[984] bibtex.pm:1518> INFO - Found BibTeX data source 'dimensionado.bib'
+[1026] UCollate.pm:68> INFO - Overriding locale 'es-ES' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[1026] UCollate.pm:68> INFO - Overriding locale 'es-ES' defaults 'variable = shifted' with 'variable = non-ignorable'
+[1027] Biber.pm:4221> INFO - Sorting list 'none/global//global/global' of type 'entry' with template 'none' and locale 'es-ES'
+[1028] bbl.pm:654> INFO - Writing 'main.bbl' with encoding 'UTF-8'
+[1029] bbl.pm:757> INFO - Output to main.bbl

@@ -1,0 +1,72 @@
+\ProvidesPackage{preamble}
+
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage[spanish]{babel}
+\usepackage{csquotes}
+\usepackage{graphicx}
+
+% Comandos para que la numeración de las ecuaciones aparezca como subsección.ecuación
+\usepackage{chngcntr}
+\counterwithout{subsection}{section}
+\numberwithin{equation}{subsection}
+\renewcommand{\theequation}{\thesubsection.\arabic{equation}}
+
+% Comando para no poner números delante de secciones y subsecciones
+\makeatletter
+\renewcommand{\@seccntformat}[1]{}
+\makeatother
+
+% Unidades
+\usepackage{siunitx}
+\sisetup{
+    detect-all            = true,
+    detect-family         = true,
+    per-mode              = symbol,
+    output-decimal-marker = {,},
+    group-digits          = integer
+}
+
+% Bibliografía
+\usepackage[
+    backend=biber,
+    style=ieee
+]{biblatex}
+\addbibresource{dimensionado.bib}
+
+% Página
+\usepackage{geometry}
+\geometry{
+    a4paper,
+    left       = 25mm,
+    right      = 25mm,
+    headheight = 20mm
+}
+
+% Tipografía
+\usepackage[T1]{fontenc}
+\usepackage{stix2}
+% \usepackage{libertine}
+% \usepackage[libertine]{newtxmath}
+
+% Encabezado
+\usepackage{fancyhdr}
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyhead[R]{Vehículos Lanzadores y Misiles \\ Grado en Ingeniería Aeroespacial}
+}
+
+% Espaciado de los párrafos
+\usepackage[indent]{parskip}
+
+% Snippets de código
+% \usepackage{listings}
+% \usepackage{listingsutf8}
+% \lstset{
+%   style              = Matlab-editor,
+%   basicstyle         = \mlttfamily \small,
+%   escapechar         = ",
+%   mlshowsectionrules = true,
+%   xleftmargin=.01\textwidth, xrightmargin=.01\textwidth,
+%   inputencoding=utf8/latin1
+% }

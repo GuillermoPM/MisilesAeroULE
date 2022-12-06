@@ -1,0 +1,53 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global}
+    \entry{curtis}{inbook}{}
+      \name{author}{1}{}{%
+        {{hash=933cf41ff77e54284e7582db33518fa1}{%
+           family={Curtis},
+           familyi={C\bibinitperiod},
+           given={Howard},
+           giveni={H\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Elsevier}%
+      }
+      \strng{namehash}{933cf41ff77e54284e7582db33518fa1}
+      \strng{fullhash}{933cf41ff77e54284e7582db33518fa1}
+      \strng{bibnamehash}{933cf41ff77e54284e7582db33518fa1}
+      \strng{authorbibnamehash}{933cf41ff77e54284e7582db33518fa1}
+      \strng{authornamehash}{933cf41ff77e54284e7582db33518fa1}
+      \strng{authorfullhash}{933cf41ff77e54284e7582db33518fa1}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{chapter}{11}
+      \field{series}{Elsevier aerospace engineering series}
+      \field{title}{Orbital Mechanics for Engineering Students}
+      \field{year}{2004}
+      \field{pages}{551\bibrangedash 578}
+      \range{pages}{28}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+
