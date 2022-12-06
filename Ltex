@@ -1,0 +1,68 @@
+\documentclass[a4paper]{article}
+\usepackage{fancyhdr}
+\rfoot[]{\thepage}
+\usepackage{setspace}
+\usepackage{float}
+\usepackage{pythonhighlight}
+\usepackage{graphicx}
+\usepackage[figurename=Imagen]{caption}
+\usepackage{tabto}
+
+\title{Fuerzas aerodinámicas en el misil AIM 120 - C}
+\author{Guillermo Peña Martínez \\
+        Alejandro Paz Rodríguez \\
+        Raúl Ordás Collado}
+\date{Diciembre 2022}
+\begin{document}
+\maketitle
+\begin{abstract}
+El objetivo de este documento es realizar el análisis de resistencia aerodinámica de un misil AIM 120 C "Slammer" siguiendo los contenidos teóricos dados en la asignatura de Vehículos Lanzadores y Misiles. En los siguientes apartados se dará solución a los ejercicios planteados, indicándose el código de Python empleado para su obtención.
+\end{abstract}
+\section*{Glosario}
+D\qquad\qquad Diámetro del misil
+\singlespacing
+\noindent
+l\qquad\qquad Longitud de la ojiva
+\section{Resistencia aerodinámica}
+Las componentes de la resistencia se han dividido en cuatro subgrupos: resistencia frontal, de base, de fricción e inducida por la sustentación.
+\subsection{Resistencia frontal}
+Para el cálculo de esta resistencia se ha distinguido entre el drag frontal producido en la ojiva como consecuencia de la onda de choque cónica, y el generado en las alas y controles.
+\subsection{Resistencia de base}
+El misil a analizar presenta un tronco de cono o \textit{boattail} en la parte final del fuselaje. Considerando esta geometría, se obtiene una resistencia de base ligeramente reducida.
+\subsection{Resistencia de fricción}
+En la elaboración del código que ha permitido obtener esta resistencia, se han realizado una serie de consideraciones generales para poder aplicar los diferentes modelos matemáticos.
+\singlespacing
+\noindent
+En primer lugar, la pared externa del misil se entiende aislada térmicamente, tomándose como método de cálculo el de la entalpía media, tal y como se indica en [1]. La transición de la capa límite laminar a turbulenta se ha realizado considerando el punto de paso como aquel en el que se tiene un Reynolds de $10^7$. Una vez obtenida la distancia, se ha calculado el \textit{momentum thickness} ($\theta$) en el caso laminar, para igualarlo al turbulento y tomar la distancia resultante de la ecuación que lo determina [1]:
+\begin{equation}
+    Cf = \frac{2\theta}{x}
+\end{equation}
+El Cf tomado ha sido el local, para lograr una mayor precisión, dentro de la aproximación que supone el método.
+\singlespacing
+\noindent
+En lo relativo al código y resolución, se crearon dos funciones denominadas Laminar y Turbulenta, que permiten calcular el coeficiente de fricción local para cada punto del misil en función de la temperatura introducida. 
+\section{Aceleración lateral}
+Para el cálculo de la aceleración lateral, se obtuvieron los diferentes coeficientes adimensionales de las fuerzas y momentos aerodinámicos según la configuración clásica que emplea este misil. Considerando los movimientos de guiñada y alabeo desacoplados y la estabilidad del vehículo, se han tomado las ecuaciones de traslación correspondientes a la aceleración lateral y de guiñada [2]:
+\begin{equation}
+    \frac{dv}{dt} = Pw - Ru + gcos\theta sin\phi - \frac{C_YqS}{m}
+\end{equation}
+\begin{equation}
+    \frac{dR}{dt} = \frac{qSl_{ref}}{I_z}(C_N-C_Y(\frac{d_{cg}-d_{cg-ref}}{l_{ref}})+C_N\frac{Rl_{ref}}{2V_m})+PQ\frac{I_x-I_y}{I_z}
+\end{equation}
+Entendiéndose que el misil se desplaza en un plano horizontal, estando el giro contenido en este plano, y la maniobra realizada con el motor apagado, se puede realizar la siguiente simplificación:
+\begin{equation}
+    \frac{dv}{dt} = - Ru  - \frac{C_YqS}{m}
+\end{equation}
+\begin{equation}
+    \frac{dR}{dt} = \frac{qSl_{ref}}{I_z}C_N +C_N\frac{Rl_{ref}}{2I_zV_m}
+\end{equation}
+El efecto de la gravedad, presente por descomposición angular en la expresión de $\frac{dv}{dt}$ es despreciable por ser los ángulos $\theta$ y $\phi$ de un orden cercano a 0.
+\singlespacing
+\noindent
+La aceleración en guiñada vendrá dada por el momento de giro aerodinámico debido a la deflexión del control, al ángulo de ataque y a la velocidad angular generada como consecuencia del giro. Se obtiene una ecuación con una única variable, R, que puede ser fácilmente despejada.
+\section*{Bibliografía}
+[1] Missile Aerodynamics
+\singlespacing
+\noindent
+[2] Misiles II Tomo I
+\end{document}
