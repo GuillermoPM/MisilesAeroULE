@@ -20,8 +20,8 @@ g0 = 0.00981	# Aceleración gravitatoria (m/s^2)
 mf = 2000		# Carga útil (kg)
 vbo = 7.8		# Velocidad en el apagado (km/s)
 
-Is = 420#etapas["impulso especifico"].mean()
-ε = 0.15#etapas["fraccion estructural"].mean()
+Is = etapas["impulso especifico"].mean()
+ε = etapas["fraccion estructural"].mean()
 
 
 """ Primera parte """
