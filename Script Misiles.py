@@ -24,7 +24,7 @@ cdc = 1                 # Cf viscous crossflow.
 m = 0.3                   # Distancia borde de ataque a punto espesor máximo.
 Bc = 0.525              # Wingspan
 deflx_w = 0.6           # Deflexión de la estela, término (1-dew/dalpha)
-Sm = 10                 # Superficie proyectada del misil
+Sm_proyect = 10			# Superficie proyectada del misil
 Scontrol = 10           # Superficie alar de los controles (m^2)
 Sw = 10                 # Superficie alar (m^2)
 S = 100					# Superficie del misil (m^2)
@@ -35,22 +35,28 @@ Xcp = 0.1               # Distancia al centro de presiones
 Xw = 0.3                # Distancia adimensional al centro de presiones del ala
 Xb = 0.4                # Distancia adimensional al centro de presiones del fuselaje
 Xc = 0.5                # Distancia adimensional al centro de presiones del control
+m_misil = 500			# Masa del misil
 
 # Variables de vuelo
 AOA = 4 				# Ángulo de ataque (deg).
 AOA = AOA*np.pi/180		# Ángulo de ataque (rad).
 M = 3                 	# Mach de vuelo
 h = 10000               # Altura de vuelo (m)
+δ_deflx = 10			# Deflexión del control (deg)
+δ_deflx = δ_deflx*np.pi/180
 #%% Variables globales
 B = (M**2-1)**0.5											# Parámetro de corrección de compresibilidad
 dens = (1.225*(1-22.558*10 ** (-6)*h)**4.2559)*0.00194032	# Densidad a la altura de vuelo
-R = 1718													# Constante gases ideales en ft^2/sec^2*R
-Tinf = 1.8*(288.15-6.5*h/1000)  								# Temperatura a la altura de vuelo en Rankine
-Patm = dens*Tinf*R
-Vsound = (1.4*Tinf*287)**0.5									# Velocidad del sonido a la altura de vuelo
+R_cte = 1718												# Constante gases ideales en ft^2/sec^2*R
+Tinf = 1.8*(288.15-6.5*h/1000)  							# Temperatura a la altura de vuelo en Rankine
+Patm = dens*Tinf*R_cte
+Vsound = (1.4*Tinf*287)**0.5								# Velocidad del sonido a la altura de vuelo
 Vinf = M*Vsound												# Velocidad de la corriente libre
 mu0 = 3.58*10**(-7)											# Viscosidad a la temperatura de referencia em slug/sec*ft
 dl = 50														# Divisiones del misil para las funciones de la capa límite.
+g = 9.81													# Gravedad (m/s^2)
+q = 1/2*Vinf**2*dens
+Iz = 200													# Momento de inercia eje z
 #%% Datos para gráfica variaciones con la temperatura. Valores extraídos del Nielsen
 Temp_Pr = [200,300,350,400,460,500,600,700,800,850,900,1000,1100,1200,1300,1400,1500,1580]
 Pr_datos = [0.768,0.75,0.74,0.73,0.72,0.714,0.7,0.69,0.684,0.682,0.68,0.679,0.68,0.682,0.685,0.689,0.692,0.695]
@@ -111,8 +117,8 @@ Cdb_s = 1
 Cdb = Cdb_s *Sb/S
 
 ## RESISTENCIA DE FRICCIÓN
-Vinf = (gamma(Tinf)*R*Tinf)**0.5*M # Velocidad de la corriente libre
-dens_ref = lambda T: Patm/(R*T) # Función de cálculo de la densidad de referencia en la capa límite.
+Vinf = (gamma(Tinf)*R_cte*Tinf)**0.5*M # Velocidad de la corriente libre
+dens_ref = lambda T: Patm/(R_cte*T) # Función de cálculo de la densidad de referencia en la capa límite.
 Re = lambda x,ρ,μ: Vinf*ρ*x/μ # Reynolds
 cf_laminar = lambda x,ρ,μ: 0.664*Re(x,ρ,μ)**(-0.5) # Coeficiente de fricción para caso laminar.
 cf_turbulento = lambda x,ρ,μ: 0.370/(np.log10(Re(x,ρ,μ))**2.584)
@@ -235,21 +241,30 @@ Dfricc_misil = Dfricc_ojiva + Dfricc_fus
 CNic = 1                                            # Pendiente del coeficiente de fuerza normal del control aislado
 CNiw = 1                                            # Pendiente del coeficiente de fuerza normal del ala aislada
 Cnalpha_b = 2                                       # Coeficiente de fuerza normal debido a alpha del fuselaje
-Cnalpha_c = (1+D/Bc)*deflx_w*Scontrol/Sm*CNic       # Coeficiente de fuerza normal debido a alpha del control
-Cnalpha_w = CNiw*Sw/Sm*(1+D/Bw)                     # Coeficiente de fuerza normal debido a alpha de las alas
+Cnalpha_c = (1+D/Bc)*deflx_w*Scontrol/Sm_proyect*CNic       # Coeficiente de fuerza normal debido a alpha del control
+Cnalpha_w = CNiw*Sw/Sm_proyect*(1+D/Bw)                     # Coeficiente de fuerza normal debido a alpha de las alas
 CN_alpha = Cnalpha_b + Cnalpha_c + Cnalpha_w        # Coeficiente de fuerza normal debido a alpha
 
 # Fuerzas debidas a delta
-Cndelta_c = CNic*Scontrol/Sm*(1+D/Bc)               # Coeficiente de fuerza normal debido a delta
+Cndelta_c = CNic*Scontrol/Sm_proyect*(1+D/Bc)               # Coeficiente de fuerza normal debido a delta
 Cn = CN_alpha + Cndelta_c                           # Coeficiente de fuerza normal total
-
+N = Cn*q*Sm_proyect									# Fuerza normal total
 #%% Momentos en el giro
 # Momentos debidos a alpha y delta
 Margen_estatico = (Cnalpha_b*(Xcg-Xb)+Cnalpha_c*(Xcg-Xc)+Cnalpha_w*(Xcg-Xw))/(Cnalpha_b+Cnalpha_c+Cnalpha_w)
 Cm_alpha = CN_alpha * Margen_estatico               # Coeficiente de momentos debido al ángulo de ataque
-Cm_delta = Cndelta_c * (Xcg-Xc)                     # Coeficiente de momentos debido al ángulo del control
+Cm_delta = Cndelta_c * (Xcg-Xc)*δ_deflx                     # Coeficiente de momentos debido al ángulo del control
 
 # Momentos debidos a la velocidad angular y la variación del AOA
-Cm_ang = -2*(Cnalpha_b*(Xcg-Xb)**2+Cnalpha_c*(Xcg-Xc)**2+Cnalpha_w*(Xcg-Xw)**2)
-Cm_variacion_AOA = -2*CNic*(Sc/Sm*r0)*(1+D/Bc)*deflx_w*(Xw-Xc)*(Xw-Xcg)             # Coeficiente de momentos debido a la variación del AOA
+Cm_ang = -2*Cnalpha_b*(Xcg-Xb)**2+Cnalpha_c*(Xcg-Xc)**2+Cnalpha_w*(Xcg-Xw)**2
+Cm_variacion_AOA = -2*CNic*(Sc/Sm_proyect*r0)*(1+D/Bc)*deflx_w*(Xw-Xc)*(Xw-Xcg)             # Coeficiente de momentos debido a la variación del AOA
 
+# Momentos
+M_delta = Cm_delta*q*Sm_proyect*D
+M_alpha = Cm_alpha*q*Sm_proyect*D
+
+#%% Aceleración lateral
+
+R = (M_delta-q*Sm_proyect*D*Cn)/(q*Sm_proyect*D*Cn/(2*Vinf)-Cm_ang*q*Sm_proyect*D)
+Lat_acc = -R*Vinf-Cn*q*Sm_proyect/m_misil
+# %%
