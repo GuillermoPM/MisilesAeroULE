@@ -11,41 +11,42 @@ import matplotlib.pyplot as plt
 from scipy import interpolate, integrate
 
 #%% Variables entrada
-
 # Variables geométricas
-D = 0.177				# Diámetro del misil. (m)
+D = 0.1778				# Diámetro del misil. (m)
 r0 = D/2				# Radio del misil. (m)
-l = 0.5					# Longitud de la ojiva. (m)
+l = 0.51				# Longitud de la ojiva. (m)
 ang_ojiva = 2*np.arctan(D/(2*l))		# Ángulo de la ojiva
-l_misil = 3.65							# Longitud del misil (m)
-tr = 1					# Ancho máximo de las alas.
+l_misil = 3.7							# Longitud del misil (m)
+tr = 0.055				# Ancho máximo de las alas.
 cr = 1                  # Cuerda superficies de control.
 cdc = 1                 # Cf viscous crossflow.
-m = 0.3                   # Distancia borde de ataque a punto espesor máximo.
-Bc = 0.525              # Wingspan
-deflx_w = 0.6           # Deflexión de la estela, término (1-dew/dalpha)
-Sm_proyect = 10			# Superficie proyectada del misil
-Scontrol = 10           # Superficie alar de los controles (m^2)
-Sw = 10                 # Superficie alar (m^2)
-S = 100					# Superficie del misil (m^2)
+m = 0.3                 # Distancia borde de ataque a punto espesor máximo.
+Bc = 0.615              # Wingspan
+deflx_w = 0.6			# Deflexión de la estela, término (1-dew/dalpha)
+Sm_proyect = (l_misil-l)*D+0.17*np.cos(45*np.pi/180)*0.3+0.219 * \
+    np.cos(45*np.pi/180)*0.315				# Superficie proyectada del misil
+Scontrol = 0.049641     # Superficie alar de los controles (m^2)
+Sw = 0.0255             # Superficie alar (m^2)
+S = D*np.pi*(l_misil-l)+\
+		np.pi*D/2*(l**2+(D/2)**2)**0.5 + Sw + Scontrol	# Superficie del misil (m^2)
 Sb = 10					# Superficie del tronco de cono de la base (m^2)
-Bw = 0.56               # Wingspan ala (m)
-Xcg = 0.2               # Distancia al centro de gravedad
+Bw = 0.517              # Wingspan ala (m)
+Xcg = 2.19/3.7          # Distancia al centro de gravedad
 Xcp = 0.1               # Distancia al centro de presiones
 Xw = 0.3                # Distancia adimensional al centro de presiones del ala
 Xb = 0.4                # Distancia adimensional al centro de presiones del fuselaje
 Xc = 0.5                # Distancia adimensional al centro de presiones del control
-m_misil = 500			# Masa del misil
+m_misil = 500			# Masa del misil (kg)
 
 # Variables de vuelo
 AOA = 4 				# Ángulo de ataque (deg).
 AOA = AOA*np.pi/180		# Ángulo de ataque (rad).
-M = 3                 	# Mach de vuelo
+M = 4                 	# Mach de vuelo
 h = 10000               # Altura de vuelo (m)
 δ_deflx = 10			# Deflexión del control (deg)
 δ_deflx = δ_deflx*np.pi/180
 #%% Variables globales
-B = (M**2-1)**0.5											# Parámetro de corrección de compresibilidad
+β = (M**2-1)**0.5											# Parámetro de corrección de compresibilidad
 dens = (1.225*(1-22.558*10 ** (-6)*h)**4.2559)*0.00194032	# Densidad a la altura de vuelo
 R_cte = 1718												# Constante gases ideales en ft^2/sec^2*R
 Tinf = 1.8*(288.15-6.5*h/1000)  							# Temperatura a la altura de vuelo en Rankine
@@ -56,7 +57,6 @@ mu0 = 3.58*10**(-7)											# Viscosidad a la temperatura de referencia em slu
 dl = 50														# Divisiones del misil para las funciones de la capa límite.
 g = 9.81													# Gravedad (m/s^2)
 q = 1/2*Vinf**2*dens
-Iz = 200													# Momento de inercia eje z
 #%% Datos para gráfica variaciones con la temperatura. Valores extraídos del Nielsen
 Temp_Pr = [200,300,350,400,460,500,600,700,800,850,900,1000,1100,1200,1300,1400,1500,1580]
 Pr_datos = [0.768,0.75,0.74,0.73,0.72,0.714,0.7,0.69,0.684,0.682,0.68,0.679,0.68,0.682,0.685,0.689,0.692,0.695]
@@ -108,7 +108,7 @@ Dc_q = cdc*AOA**3*Sc                                # Viscous crossflow drag / p
 
 ## RESISTENCIA FRONTAL
 # Drag frontal en las alas para AOA = 0
-Cd0 = 1/(4*m*(1-m))*4*(tr/cr)**2/B
+Cd0 = 1/(4*m*(1-m))*4*(tr/cr)**2/β
 # Drag frontal ojiva
 Cdw = (0.083+0.096/M**2)*(ang_ojiva/10)**1.69*(1-(392*(l/D)**2-32)/(28*(M+18)*(l/D)**2))
 
@@ -151,11 +151,8 @@ def Laminar(T):
 	δ = 5*x_misil/(Re(x=x_misil, ρ=dens_ref(Tref),μ=mu_ref)**0.5)  # Espesor capa límite
 	displ_thickness = 1.72*x_misil/(Re(x=x_misil, ρ=dens_ref(Tref), μ=mu_ref)**0.5)  # Displacement thickness
 	return cf_local,xT,θ,δ,dens_ref(Tref),cf_medio,displ_thickness
-
-
 θ = Laminar(Tinf)[2]			# Punto de transición
 xT = Laminar(Tinf)[1]			# Punto de transición
-
 def Turbulenta(T,θ,xT):
 	"Función que calcula la capa límite turbulenta en función de la temperatura exterior"
 	Titer = 1800
@@ -168,7 +165,6 @@ def Turbulenta(T,θ,xT):
 		if abs(Titer-Tref) <= 0.00001:
 			break
 		Titer = Tref
-	print(Tref)
 	mu_ref = mu(Tref)*mu0
 	# Promedio
 	Re_medio = Re(x=l_misil*3.281, ρ=dens_ref(Tref), μ=mu_ref)
@@ -238,8 +234,8 @@ Dfricc_ojiva, Dfricc_fus = Dfricc_lam*2*np.pi*integrate.quad(r_ojiva, 0, l)[0], 
 Dfricc_misil = Dfricc_ojiva + Dfricc_fus
 #%% Fuerzas en el giro configuración "clásica"
 # Fuerzas debidas a alpha
-CNic = 1                                            # Pendiente del coeficiente de fuerza normal del control aislado
-CNiw = 1                                            # Pendiente del coeficiente de fuerza normal del ala aislada
+CNic = 4/β
+CNiw = 4/β
 Cnalpha_b = 2                                       # Coeficiente de fuerza normal debido a alpha del fuselaje
 Cnalpha_c = (1+D/Bc)*deflx_w*Scontrol/Sm_proyect*CNic       # Coeficiente de fuerza normal debido a alpha del control
 Cnalpha_w = CNiw*Sw/Sm_proyect*(1+D/Bw)                     # Coeficiente de fuerza normal debido a alpha de las alas
